@@ -11,61 +11,65 @@ Bu projede NodeMCU:
 - JSON’a dönüştürür
 - MQTT broker’a publish eder
 
-## Topic Yapısı
+## Topic Yapısı (Projede Kullanılan)
 
-Önerilen topic şeması:
+Projedeki mevcut kod tanımlarına göre (örnek cihaz kimliği: `device1`) topic şeması şu şekildedir:
 
-- Telemetri:
-  - `iot/air-quality/telemetry/<deviceId>`
-- Durum / heartbeat:
-  - `iot/air-quality/status/<deviceId>`
-- Komut (opsiyonel):
-  - `iot/air-quality/cmd/<deviceId>`
+- Kök:
+  - `iot/device1/`
 
-Örnek:
-- `iot/air-quality/telemetry/lab-01`
-- `iot/air-quality/status/lab-01`
+- Telemetri (her sensör için ayrı topic):
+  - Sıcaklık: `iot/device1/temp`
+  - Nem: `iot/device1/hum`
+  - MQ135: `iot/device1/mq135`
+  - MQ9: `iot/device1/mq9`
+  - Toz: `iot/device1/dust`
+
+> Not: Bu yapı, tek bir JSON payload yerine sensörleri ayrı topic’lere ayırır. Telegraf tarafında her topic için ayrı parse/field map yapılması gerekebilir.
 
 ## QoS / Retain Önerileri
 
 - Telemetri: QoS 0 (yüksek frekanslı ölçümlerde tercih edilebilir)
-- Durum/heartbeat: QoS 1, retain=true (son bilinen durumun saklanması için)
+- Durum/heartbeat (varsa): QoS 1, retain=true
 
-> Portföy amaçlı prototiplerde QoS stratejisi ihtiyaca göre değiştirilebilir.
+## Örnek MQTT Payload (Öneri)
 
-## Örnek MQTT JSON Payload
+Proje topic’leri sensör bazlı ayrıldığı için pratikte payload şu şekilde sade olabilir:
+
+- `iot/device1/temp`
 
 ```json
-{
-  "deviceId": "lab-01",
-  "ts": 1716462000,
-  "location": "ofis",
-  "dht11": {
-    "temperatureC": 24.1,
-    "humidity": 48.0
-  },
-  "mq135": {
-    "adc": 512,
-    "score": 0.62
-  },
-  "mq9": {
-    "adc": 438,
-    "score": 0.41
-  },
-  "dust": {
-    "adc": 376,
-    "pm25EstimateUgM3": 18.4
-  },
-  "rssi": -61,
-  "firmware": {
-    "uno": "1.0.0",
-    "esp8266": "1.0.0"
-  }
-}
+{ "temperatureC": 24.1 }
+```
+
+- `iot/device1/hum`
+
+```json
+{ "humidity": 48.0 }
+```
+
+- `iot/device1/mq135`
+
+```json
+{ "adc": 512, "score": 0.62 }
+```
+
+- `iot/device1/mq9`
+
+```json
+{ "adc": 438, "score": 0.41 }
+```
+
+- `iot/device1/dust`
+
+```json
+{ "adc": 376, "pm25EstimateUgM3": 18.4 }
 ```
 
 ## Payload Tasarım Notları
 
 - `adc`: ham analog okuma (0..1023 gibi)
 - `score`: kalibrasyonsuz göreli bir skor (0..1). İleride kalibrasyon ile ppm/µg/m³ dönüşebilir.
-- `ts`: epoch time (saniye). Alternatif olarak ISO-8601 de kullanılabilir.
+- Zaman damgası ihtiyacı varsa iki yaklaşım:
+  - Telegraf’ın alım zamanını timestamp olarak kullanmak
+  - Payload içine `ts` alanı eklemek (epoch)

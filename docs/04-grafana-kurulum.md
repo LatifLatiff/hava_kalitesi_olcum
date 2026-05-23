@@ -1,32 +1,38 @@
-# Grafana Kurulum ve Dashboard Yaklaşımı
+# Grafana Kurulum ve Dashboard Yaklaşımı (InfluxDB v2)
 
-Bu doküman, InfluxDB verilerinin Grafana’da görselleştirilmesi için önerilen adımları ve dashboard yaklaşımını özetler.
+Bu doküman, InfluxDB v2 verilerinin Grafana’da görselleştirilmesi için önerilen adımları ve dashboard yaklaşımını özetler.
 
 ## Kurulum
 
-Grafana’yı Docker ile çalıştırmanız önerilir. `infrastructure/docker/docker-compose.yml` içinde birlikte konumlandırılabilir.
+Grafana’yı işletim sisteminize göre kurun ve çalıştırın.
 
-Genel kullanım:
+> Bu projede Docker kullanılmadan kurulum da desteklenir. `infrastructure/docker/` klasörü sadece opsiyonel demo amaçlıdır.
 
-```bash
-docker compose up -d
-```
+## Data Source (InfluxDB v2)
 
-## Data Source
+Grafana arayüzünde:
 
-- Data Source tipi: InfluxDB
-- Bağlantı: InfluxDB URL + Token + Bucket
+1. **Connections / Data sources** → **Add data source**
+2. **InfluxDB** seçin
+3. Query language olarak genelde **Flux** kullanılır (InfluxDB v2)
+4. Aşağıdaki bilgileri girin:
+
+- **URL**: `http://<INFLUXDB_IP>:8086`
+- **Organization**: `EnvSensors`
+- **Token**: (InfluxDB v2 API Token)
+- **Default bucket**: `SensorData`
 
 ## Dashboard Önerileri
 
-- Zaman serisi paneller:
-  - Sıcaklık (°C)
-  - Nem (%)
-  - PM2.5 tahmini (µg/m³)
-  - MQ135 / MQ9 ham ADC ve göreli skorlar
-- Durum panelleri:
-  - RSSI
-  - Heartbeat / son veri zamanı
+Önerilen panel seti:
+
+- **Sıcaklık (°C)** — `temperatureC`
+- **Nem (%)** — `humidity`
+- **PM2.5 tahmini (µg/m³)** — `pm25EstimateUgM3`
+- **MQ135 ADC / score** — `adc`, `score`
+- **MQ9 ADC / score** — `adc`, `score`
+
+> Not: ADC/score gibi alan adları, MQTT payload’unuzdaki JSON alan isimleriyle birebir aynı olmalıdır.
 
 ## Ekran Görüntüleri Notu
 
@@ -35,6 +41,6 @@ Grafana üzerinde görselleştirme **başarıyla** yapılmış olsa da, donanım
 Bu nedenle repo, ekran görüntülerinden ziyade:
 - mimari tasarım
 - firmware yaklaşımı
-- veri hattı dokümantasyonu
+- Mosquitto + Telegraf + InfluxDB v2 + Grafana veri hattı dokümantasyonu
 
 odaklı sunulmaktadır.
