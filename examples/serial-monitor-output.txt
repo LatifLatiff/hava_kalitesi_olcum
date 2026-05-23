@@ -1,0 +1,4 @@
+[UNO] t=24.1C h=48.0% mq135=512 mq9=438 dust_adc=376 pm25=18.4
+[ESP] WiFi connected, IP=192.168.1.42, RSSI=-61
+[ESP] MQTT connected, broker=192.168.1.10:1883
+[ESP] publish topic=iot/air-quality/telemetry/lab-01 payload_size=236

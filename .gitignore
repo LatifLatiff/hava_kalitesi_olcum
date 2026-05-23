@@ -1,0 +1,20 @@
+# Derleme çıktıları
+build/
+*.o
+*.obj
+*.exe
+
+# Arduino/PlatformIO
+.pio/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+*.secret

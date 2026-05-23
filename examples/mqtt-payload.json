@@ -1,0 +1,26 @@
+{
+  "deviceId": "lab-01",
+  "ts": 1716462000,
+  "location": "ofis",
+  "dht11": {
+    "temperatureC": 24.1,
+    "humidity": 48.0
+  },
+  "mq135": {
+    "adc": 512,
+    "score": 0.62
+  },
+  "mq9": {
+    "adc": 438,
+    "score": 0.41
+  },
+  "dust": {
+    "adc": 376,
+    "pm25EstimateUgM3": 18.4
+  },
+  "rssi": -61,
+  "firmware": {
+    "uno": "1.0.0",
+    "esp8266": "1.0.0"
+  }
+}
