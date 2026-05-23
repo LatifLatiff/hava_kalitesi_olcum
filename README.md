@@ -3,12 +3,16 @@
 [![Language](https://img.shields.io/badge/language-C%2B%2B-00599C?logo=c%2B%2B)](#)
 [![Platform](https://img.shields.io/badge/platform-Arduino%20UNO-00979D?logo=arduino)](#)
 [![Platform](https://img.shields.io/badge/platform-ESP8266-000000)](#)
-[![Messaging](https://img.shields.io/badge/MQTT-supported-660066?logo=eclipse-mosquitto)](#)
-[![Time%20Series](https://img.shields.io/badge/InfluxDB-integrated-22ADF6?logo=influxdb)](#)
-[![Observability](https://img.shields.io/badge/Grafana-visualized-F46800?logo=grafana)](#)
+[![Messaging](https://img.shields.io/badge/MQTT-Mosquitto-660066?logo=eclipse-mosquitto)](#)
+[![Pipeline](https://img.shields.io/badge/pipeline-MQTT%20%E2%86%92%20Telegraf%20%E2%86%92%20InfluxDB%20v2%20%E2%86%92%20Grafana-2ea44f)](#)
 [![License](https://img.shields.io/badge/license-MIT-green)](#lisans)
 
-Bu proje, **Arduino UNO + NodeMCU ESP8266** tabanlı bir **IoT Hava Kalitesi İzleme Sistemi**’dir. Arduino UNO sensör okumalarını yapar, NodeMCU ESP8266 bu verileri **MQTT** üzerinden yayınlar. Veriler **InfluxDB**’ye yazılır ve **Grafana** ile görselleştirilir.
+Bu proje, **Arduino UNO + NodeMCU ESP8266** tabanlı bir **IoT Hava Kalitesi İzleme Sistemi**’dir.
+
+- Arduino UNO sensör okumalarını yapar ve **SoftwareSerial** ile NodeMCU’ya aktarır.
+- NodeMCU ESP8266 veriyi **JSON** formatına çevirip **MQTT (Mosquitto)** üzerinden yayınlar.
+- **Telegraf**, MQTT mesajlarını tüketerek veriyi **InfluxDB v2**’ye yazar.
+- **Grafana** ile veriler görselleştirilir.
 
 > Not: Grafana tarafındaki görselleştirme başarıyla yapılmıştır; ancak donanım prototipi demo sonrasında söküldüğü için aynı koşullarda tekrar telemetri üretilip ekran görüntüsü alınamamıştır. Bu repo, mimari + firmware + veri hattı dokümantasyonu odaklı sunulmaktadır.
 
@@ -21,14 +25,16 @@ Bu proje, **Arduino UNO + NodeMCU ESP8266** tabanlı bir **IoT Hava Kalitesi İz
 - [İletişim ve Veri Akışı](#iletişim-ve-veri-akışı)
 - [Sistem Mimarisi (ASCII)](#sistem-mimarisi-ascii)
 - [MQTT Mimarisi](#mqtt-mimarisi)
-  - [Topic Yapısı](#topic-yapısı)
+  - [MQTT Topic Yapısı](#mqtt-topic-yapısı)
   - [Örnek MQTT JSON Verisi](#örnek-mqtt-json-verisi)
 - [Bağlantı Açıklamaları](#bağlantı-açıklamaları)
 - [Örnek Seri Monitör Çıktısı](#örnek-seri-monitör-çıktısı)
 - [Kurulum Rehberi](#kurulum-rehberi)
-  - [MQTT Broker Kurulumu](#mqtt-broker-kurulumu)
-  - [InfluxDB Entegrasyonu](#influxdb-entegrasyonu)
+  - [MQTT Broker (Mosquitto)](#mqtt-broker-mosquitto)
+  - [InfluxDB v2 Entegrasyonu](#influxdb-v2-entegrasyonu)
+  - [Telegraf (MQTT → InfluxDB)](#telegraf-mqtt--influxdb)
   - [Grafana](#grafana)
+- [Grafana Ekran Görüntüleri Neden Yok?](#grafana-ekran-görüntüleri-neden-yok)
 - [Gelecek Geliştirmeler](#gelecek-geliştirmeler)
 - [Katkıda Bulunma](#katkıda-bulunma)
 - [Lisans](#lisans)
@@ -37,9 +43,11 @@ Bu proje, **Arduino UNO + NodeMCU ESP8266** tabanlı bir **IoT Hava Kalitesi İz
 
 ## Sistem Özeti
 
-- **Arduino UNO**: Sensör okumaları, temel filtreleme/ölçekleme ve seri paketleme
-- **NodeMCU ESP8266**: WiFi bağlantısı + MQTT istemcisi (seri porttan gelen veriyi JSON’a çevirip publish eder)
-- **InfluxDB**: Zaman serisi veri tabanı (telemetri depolama)
+- **Arduino UNO**: Sensör okumaları + seri paketleme
+- **NodeMCU ESP8266**: WiFi + MQTT publish (JSON)
+- **Mosquitto**: MQTT broker
+- **Telegraf**: MQTT consumer + parse + InfluxDB yazımı
+- **InfluxDB v2**: Zaman serisi veri tabanı
 - **Grafana**: Dashboard ve görselleştirme
 
 ---
@@ -52,7 +60,8 @@ Bu proje, **Arduino UNO + NodeMCU ESP8266** tabanlı bir **IoT Hava Kalitesi İz
 - GP2Y1014AU ile **toz yoğunluğu** (PM2.5 tahmini için analog ölçüm)
 - Arduino UNO ↔ NodeMCU arasında **SoftwareSerial** haberleşme
 - MQTT üzerinden **JSON payload** yayınlama
-- InfluxDB + Grafana hattında uçtan uca veri görselleştirme
+- Telegraf ile MQTT’den InfluxDB v2’ye yazım
+- Grafana ile görselleştirme
 
 ---
 
@@ -61,11 +70,13 @@ Bu proje, **Arduino UNO + NodeMCU ESP8266** tabanlı bir **IoT Hava Kalitesi İz
 - Gömülü: Arduino UNO, NodeMCU ESP8266
 - Dil: C/C++ (Arduino framework)
 - Haberleşme: SoftwareSerial, UART
-- IoT: MQTT
+- IoT: MQTT (Mosquitto)
 - Veri formatı: JSON
-- Veri tabanı: InfluxDB
+- Veri hattı: Telegraf
+- Veri tabanı: InfluxDB v2
 - Görselleştirme: Grafana
-- (Opsiyonel) Docker Compose ile hızlı altyapı ayağa kaldırma
+
+> `infrastructure/docker/` klasörü **opsiyonel** bir kolay demo altyapısıdır. Bu proje pratikte Docker kullanılmadan da kurulabilir.
 
 ---
 
@@ -75,7 +86,7 @@ Bu proje, **Arduino UNO + NodeMCU ESP8266** tabanlı bir **IoT Hava Kalitesi İz
 - NodeMCU ESP8266 (WiFi + MQTT köprüsü)
 - Sensörler
   - DHT11 (Temperature/Humidity)
-  - MQ135 (Air Quality / VOC benzeri gazlara duyarlı)
+  - MQ135 (Air Quality)
   - MQ9 (CO / Gas)
   - GP2Y1014AU (Dust sensor, PM2.5 tahmini)
 
@@ -85,11 +96,7 @@ Detaylar için: `docs/01-donanim.md`
 
 ## İletişim ve Veri Akışı
 
-**Arduino UNO ↔ NodeMCU**: SoftwareSerial ile paketlenmiş ölçüm verisi
-
-**NodeMCU → MQTT**: JSON publish
-
-**MQTT → InfluxDB → Grafana**: veri toplama ve görselleştirme hattı
+Arduino UNO → NodeMCU → MQTT → Telegraf → InfluxDB v2 → Grafana
 
 ---
 
@@ -106,14 +113,14 @@ Detaylar için: `docs/01-donanim.md`
 | GP2Y1014AU        |                                            | MQTT (JSON)
 +---------+---------+                                            v
           |                                            +------------------+
-          |                                            |   MQTT Broker    |
-          |                                            | (Mosquitto vb.)  |
+          |                                            |  Mosquitto       |
+          |                                            |  MQTT Broker     |
           |                                            +--------+---------+
           |                                                     |
-          |                                                     | Telegraf/Consumer
+          |                                                     | Telegraf (MQTT Consumer)
           |                                                     v
           |                                            +------------------+
-          |                                            |     InfluxDB     |
+          |                                            |   InfluxDB v2    |
           |                                            +--------+---------+
           |                                                     |
           |                                                     v
@@ -132,7 +139,7 @@ NodeMCU, Arduino’dan gelen seri veriyi doğrular, alanları ayrıştırır ve 
 
 Detaylar için: `docs/02-mqtt-mimarisi.md`
 
-### Topic Yapısı
+### MQTT Topic Yapısı
 
 - Telemetri:
   - `iot/air-quality/telemetry/<deviceId>`
@@ -161,36 +168,64 @@ Elektriksel ve pin bağlantı notları için: `docs/01-donanim.md`
 
 ## Kurulum Rehberi
 
-### MQTT Broker Kurulumu
+Aşağıdaki adımlar, **Docker kullanmadan** (yani native kurulumla) kurulumu hedefler. İsterseniz `infrastructure/docker/` altında opsiyonel Docker Compose iskeleti de mevcuttur.
 
-Geliştirme için en pratik yol: **Eclipse Mosquitto**.
+### MQTT Broker (Mosquitto)
 
-Docker ile hızlı kurulum:
+- Mosquitto’yu kurun ve çalıştırın.
+- Varsayılan port: `1883`
+
+Hızlı test (subscribe):
 
 ```bash
-cd infrastructure/docker
-docker compose up -d
+mosquitto_sub -h <broker-ip> -t 'iot/air-quality/#' -v
 ```
 
-### InfluxDB Entegrasyonu
+### InfluxDB v2 Entegrasyonu
 
-Yaklaşım ve şema önerisi:
-- `docs/03-influxdb-kurulum.md`
+- InfluxDB v2 kurulumunu tamamlayın.
+- UI üzerinden **Org**, **Bucket** ve **Token** oluşturun.
+
+Detaylar: `docs/03-influxdb-kurulum.md`
+
+### Telegraf (MQTT → InfluxDB)
+
+- Telegraf’ı kurun.
+- `inputs.mqtt_consumer` ile ilgili topic’i dinleyin.
+- `outputs.influxdb_v2` ile InfluxDB v2’ye yazın.
+
+Detaylar: `docs/03-influxdb-kurulum.md`
 
 ### Grafana
 
-Kurulum ve dashboard yaklaşımı:
-- `docs/04-grafana-kurulum.md`
+- Grafana’yı kurun.
+- Data Source olarak InfluxDB v2 ekleyin.
+- Dashboard panellerini oluşturun.
+
+Detaylar: `docs/04-grafana-kurulum.md`
+
+---
+
+## Grafana Ekran Görüntüleri Neden Yok?
+
+Grafana üzerinde görselleştirme **başarıyla** yapılmış olsa da, donanım prototipi demo süreci sonrasında söküldüğü için aynı koşullarda tekrar telemetri üretilip ekran görüntüsü alınamamıştır.
+
+Bu nedenle repo, ekran görüntülerinden ziyade:
+- mimari tasarım
+- firmware yaklaşımı
+- MQTT/InfluxDB/Grafana veri hattı dokümantasyonu
+
+odaklı sunulmaktadır.
 
 ---
 
 ## Gelecek Geliştirmeler
 
 - Sensör kalibrasyonu ve gerçek birimlere dönüşüm (ppm / µg/m³)
-- OTA (ESP8266) güncelleme desteği
 - MQTT QoS/retain stratejisinin netleştirilmesi
 - Offline buffer (WiFi/MQTT kesintilerinde veri kaybını azaltma)
-- Dashboard JSON export/import ile otomatik Grafana provision
+- Grafana dashboard export/provisioning dosyalarının eklenmesi
+- OTA (ESP8266) güncelleme desteği
 
 ---
 
@@ -205,7 +240,4 @@ Kurulum ve dashboard yaklaşımı:
 
 ## Lisans
 
-Bu proje açık kaynak olarak paylaşılmaktadır.
-
-- Önerilen lisans: **MIT**
-- `LICENSE` dosyasını ekleyerek netleştirmeniz tavsiye edilir.
+MIT
